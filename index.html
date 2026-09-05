@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vardevej Gauge — Skjern Å water level forecast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F6F5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E1A1D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vardevej">
+<style>
+  :root {
+    --surface: #F2F6F5;
+    --surface-raised: #FFFFFF;
+    --surface-sunken: #E7EEEC;
+    --ink: #132226;
+    --ink-muted: #4B6066;
+    --ink-faint: #7C9096;
+    --border: #D7E2E0;
+    --water: #0099AB;
+    --water-soft: #CDEBEE;
+    --rain: #4C51E5;
+    --rain-soft: #E2E3FB;
+    --amber: #A15C00;
+    --amber-soft: #F3E1C7;
+    --font-display: "Spectral", Georgia, "Times New Roman", serif;
+    --font-body: "Archivo", -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: #0E1A1D;
+      --surface-raised: #142629;
+      --surface-sunken: #0A1416;
+      --ink: #E7F1EF;
+      --ink-muted: #9FB6B7;
+      --ink-faint: #5F787A;
+      --border: #24393C;
+      --water: #2BA6AE;
+      --water-soft: #12363A;
+      --rain: #7477DE;
+      --rain-soft: #26254A;
+      --amber: #E3A542;
+      --amber-soft: #3A2E14;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: #0E1A1D;
+    --surface-raised: #142629;
+    --surface-sunken: #0A1416;
+    --ink: #E7F1EF;
+    --ink-muted: #9FB6B7;
+    --ink-faint: #5F787A;
+    --border: #24393C;
+    --water: #2BA6AE;
+    --water-soft: #12363A;
+    --rain: #7477DE;
+    --rain-soft: #26254A;
+    --amber: #E3A542;
+    --amber-soft: #3A2E14;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 16px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ---------- Header ---------- */
+  header { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .subhead { font-size: 13.5px; color: var(--ink-muted); }
+
+  /* ---------- Hero gauge ---------- */
+  .gauge {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .gauge-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .gauge-reading { display: flex; align-items: baseline; gap: 6px; }
+  .gauge-number {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 52px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .gauge-unit { font-family: var(--font-mono); font-size: 18px; color: var(--ink-muted); }
+  .gauge-meta { font-size: 12.5px; color: var(--ink-muted); text-align: right; }
+  .trend-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 600;
+    font-family: var(--font-body);
+  }
+  .trend-pill.rising { background: var(--amber-soft); color: var(--amber); }
+  .trend-pill.falling { background: var(--water-soft); color: var(--water); }
+  .trend-pill.steady { background: var(--surface-sunken); color: var(--ink-muted); }
+  .trend-pill svg { width: 12px; height: 12px; }
+
+  .range-bar-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .range-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--water-soft), var(--surface-sunken) 50%, var(--amber-soft));
+  }
+  .range-bar .marker {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 3px solid var(--ink);
+    transform: translate(-50%, -50%);
+  }
+  .range-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--ink-faint);
+  }
+  .range-caption { font-size: 12.5px; color: var(--ink-muted); }
+
+  /* ---------- Forecast strip ---------- */
+  section h2 {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 10px 2px;
+    color: var(--ink);
+  }
+  .day-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 84px;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+  .day-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .day-card .dow { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+  .day-card .dom { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); margin-top: -4px; }
+  .day-card svg.wicon { width: 26px; height: 26px; }
+  .day-card .temps { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .day-card .temps .lo { color: var(--ink-faint); }
+  .day-card .rain-amt {
+    font-family: var(--font-mono); font-size: 11px; color: var(--rain);
+    font-variant-numeric: tabular-nums;
+  }
+  .day-card .lvl {
+    font-family: var(--font-mono); font-size: 12px; color: var(--water); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px dashed var(--border);
+    padding-top: 5px; width: 100%;
+  }
+
+  /* ---------- Charts ---------- */
+  .chart-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 14px 10px;
+  }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .chart-title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; }
+  .chart-title .unit { font-weight: 400; color: var(--ink-muted); font-size: 12px; }
+  svg.chart { width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+  .tick-label { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-faint); }
+  .axis-line { stroke: var(--border); stroke-width: 1; }
+  .tooltip-group { pointer-events: none; }
+  .tooltip-bg { fill: var(--ink); opacity: 0.92; }
+  .tooltip-text { font-family: var(--font-mono); font-size: 10.5px; fill: var(--surface); }
+  .crosshair { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  /* ---------- Footer ---------- */
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat-tile {
+    flex: 1 1 130px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .stat-tile .label { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-tile .value { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+  footer {
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  footer a { color: var(--ink-muted); }
+  footer .sync-line { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--water); flex: none; }
+  .dot.stale { background: var(--amber); }
+
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--water); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Skjern Å · Station 251519 · Vardevej</div>
+    <h1>Water level forecast</h1>
+    <div class="subhead">7-day outlook from rainfall, updated daily</div>
+  </header>
+
+  <div class="gauge">
+    <div class="gauge-top">
+      <div>
+        <div class="gauge-reading">
+          <span class="gauge-number" id="curLevel">–.––</span>
+          <span class="gauge-unit">m DVR90</span>
+        </div>
+        <div class="gauge-meta" id="curDate" style="text-align:left; margin-top:2px;">loading…</div>
+      </div>
+      <div id="trendPill"></div>
+    </div>
+    <div class="range-bar-wrap">
+      <div class="range-bar"><div class="marker" id="rangeMarker" style="left:50%"></div></div>
+      <div class="range-labels"><span>1.39 m</span><span>2.64 m</span></div>
+      <div class="range-caption" id="rangeCaption">Position within the observed range since Jan 2025.</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Next 7 days</h2>
+    <div class="day-strip" id="dayStrip"></div>
+  </section>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <div class="chart-title"><span class="swatch" style="background:var(--water)"></span>Predicted level <span class="unit">m</span></div>
+    </div>
+    <svg class="chart" id="levelChart" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <div class="chart-title"><span class="swatch" style="background:var(--rain)"></span>Forecast rainfall <span class="unit">mm</span></div>
+    </div>
+    <svg class="chart" id="rainChart" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-tile"><div class="label">1-day accuracy</div><div class="value" id="mae1">± – cm</div></div>
+    <div class="stat-tile"><div class="label">7-day accuracy</div><div class="value" id="mae7">± – cm</div></div>
+  </div>
+
+  <footer>
+    <div class="sync-line"><span class="dot" id="syncDot"></span><span id="syncLine">Connecting…</span></div>
+    <div>Model: daily rainfall (Open-Meteo) → water level, fit on the station's observed history. Peak response ~3 days after rain; recession half-life ~50 days.</div>
+    <div style="margin-top:6px;">Data: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://vandportalen.dk" target="_blank" rel="noopener">Vandportalen</a></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Register a web-app manifest at runtime (via Blob URL) so "Add to Home
+  // screen" on Android installs this as a standalone app - own icon, no
+  // address bar, themed splash - rather than a plain bookmark shortcut.
+  try {
+    const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">` +
+      `<rect width="512" height="512" rx="104" fill="#0E1A1D"/>` +
+      `<path d="M48 300 Q152 240 256 284 T464 264" stroke="#2BA6AE" stroke-width="30" fill="none" stroke-linecap="round"/>` +
+      `<path d="M48 366 Q152 322 256 350 T464 336" stroke="#2BA6AE" stroke-width="18" fill="none" stroke-linecap="round" opacity="0.55"/>` +
+      `</svg>`;
+    const iconUrl = "data:image/svg+xml," + encodeURIComponent(iconSvg);
+    const manifest = {
+      name: "Vardevej Gauge — Skjern Å water level",
+      short_name: "Vardevej",
+      description: "7-day Skjern Å water level forecast, from rainfall",
+      start_url: location.href,
+      scope: location.href,
+      display: "standalone",
+      background_color: "#0E1A1D",
+      theme_color: "#0E1A1D",
+      icons: [
+        { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+        { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any" },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  } catch (e) { /* manifest is a progressive enhancement - ignore failures */ }
+
+  const HIST_MIN = 1.387, HIST_MAX = 2.641; // observed range at this station, Jan 2025–present
+
+  const WEATHER_ICONS = {
+    clear: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" stroke="var(--amber)" stroke-width="1.6"/><g stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round"><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7M19.1 19.1l-1.7-1.7M6.6 6.6L4.9 4.9"/></g></svg>`,
+    cloudy: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 18a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 11a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+    rain: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 15a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 8a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/><g stroke="var(--rain)" stroke-width="1.6" stroke-linecap="round"><path d="M9 18.5 8 21M13 18.5l-1 2.5M17 18.5l-1 2.5"/></g></svg>`,
+    storm: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 13a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 6a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.5 14 10 18.5h3L11 22" stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    snow: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 13a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 6a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/><g stroke="var(--water)" stroke-width="1.6" stroke-linecap="round"><path d="M9 17v4M9 17l-1.7 1M9 17l1.7 1M9 21l-1.7-1M9 21l1.7-1M15 17v4M15 17l-1.7 1M15 17l1.7 1M15 21l-1.7-1M15 21l1.7-1"/></g></svg>`,
+    fog: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><g stroke="var(--ink-muted)" stroke-width="1.6" stroke-linecap="round"><path d="M4 9h16M4 13h16M4 17h11"/></g></svg>`,
+  };
+  function iconFor(code) {
+    if (code === null || code === undefined) return WEATHER_ICONS.cloudy;
+    if (code === 0 || code === 1) return WEATHER_ICONS.clear;
+    if (code === 2 || code === 3) return WEATHER_ICONS.cloudy;
+    if (code === 45 || code === 48) return WEATHER_ICONS.fog;
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return WEATHER_ICONS.rain;
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return WEATHER_ICONS.snow;
+    if (code >= 95) return WEATHER_ICONS.storm;
+    return WEATHER_ICONS.cloudy;
+  }
+
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  function fmtDay(dateStr, idx) {
+    const d = new Date(dateStr + "T12:00:00Z");
+    return idx === 0 ? "Today" : DOW[d.getUTCDay()];
+  }
+  function fmtDom(dateStr) {
+    const d = new Date(dateStr + "T12:00:00Z");
+    return d.getUTCDate() + " " + d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+  }
+
+  function render(data) {
+    if (!data) return;
+    const cur = data.last_observed;
+    const days = data.days || [];
+
+    document.getElementById("curLevel").textContent = cur.level_m.toFixed(3);
+    document.getElementById("curDate").textContent = "as of " + fmtDom(cur.date);
+
+    // trend pill: compare tomorrow's prediction to today's observed level
+    const pill = document.getElementById("trendPill");
+    if (days.length) {
+      const delta = days[0].predicted_level_m - cur.level_m;
+      let cls = "steady", label = "Steady", arrow = "→";
+      if (delta > 0.01) { cls = "rising"; label = "Rising"; arrow = "↑"; }
+      else if (delta < -0.01) { cls = "falling"; label = "Falling"; arrow = "↓"; }
+      pill.innerHTML = `<span class="trend-pill ${cls}">${arrow} ${label} · ${(delta >= 0 ? "+" : "")}${Math.round(delta * 100)} cm /24h</span>`;
+    }
+
+    // range bar
+    const pct = Math.max(0, Math.min(100, ((cur.level_m - HIST_MIN) / (HIST_MAX - HIST_MIN)) * 100));
+    document.getElementById("rangeMarker").style.left = pct + "%";
+    const third = pct < 33 ? "lower third" : pct < 66 ? "middle third" : "upper third";
+    document.getElementById("rangeCaption").textContent =
+      `Sits in the ${third} of the range observed since Jan 2025.`;
+
+    // day strip
+    const strip = document.getElementById("dayStrip");
+    strip.innerHTML = days.map((d, i) => `
+      <div class="day-card">
+        <div class="dow">${fmtDay(d.date, i)}</div>
+        <div class="dom">${fmtDom(d.date)}</div>
+        ${iconFor(d.weather_code)}
+        <div class="temps">${Math.round(d.temp_max_c)}°<span class="lo">/${Math.round(d.temp_min_c)}°</span></div>
+        <div class="rain-amt">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
+        <div class="lvl">${d.predicted_level_m.toFixed(2)} m</div>
+      </div>
+    `).join("");
+
+    drawLevelChart(cur, days);
+    drawRainChart(days);
+
+    if (data.model_holdout_mae_cm) {
+      document.getElementById("mae1").textContent = "± " + data.model_holdout_mae_cm["1"].toFixed(1) + " cm";
+      document.getElementById("mae7").textContent = "± " + data.model_holdout_mae_cm["7"].toFixed(1) + " cm";
+    }
+
+    const genDate = new Date(data.generated_at);
+    document.getElementById("syncLine").textContent =
+      "Forecast generated " + genDate.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+    const ageHrs = (Date.now() - genDate.getTime()) / 36e5;
+    document.getElementById("syncDot").className = "dot" + (ageHrs > 30 ? " stale" : "");
+  }
+
+  function drawLevelChart(cur, days) {
+    const svg = document.getElementById("levelChart");
+    const W = 600, H = 160, padL = 34, padR = 10, padT = 14, padB = 22;
+    const points = [{ date: cur.date, v: cur.level_m, isAnchor: true }]
+      .concat(days.map(d => ({ date: d.date, v: d.predicted_level_m })));
+    const vals = points.map(p => p.v);
+    let vMin = Math.min(...vals), vMax = Math.max(...vals);
+    const pad = Math.max(0.03, (vMax - vMin) * 0.25);
+    vMin -= pad; vMax += pad;
+
+    const x = i => padL + (i / (points.length - 1)) * (W - padL - padR);
+    const y = v => padT + (1 - (v - vMin) / (vMax - vMin)) * (H - padT - padB);
+
+    let s = "";
+    // gridlines + y labels (min/mid/max)
+    [vMin + pad * 0.3, (vMin + vMax) / 2, vMax - pad * 0.3].forEach(v => {
+      const yy = y(v);
+      s += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" class="axis-line"/>`;
+      s += `<text x="${padL - 6}" y="${yy + 3}" text-anchor="end" class="tick-label">${v.toFixed(2)}</text>`;
+    });
+
+    const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(p.v)}`).join(" ");
+    const areaPath = linePath + ` L ${x(points.length - 1)} ${H - padB} L ${x(0)} ${H - padB} Z`;
+    s += `<path d="${areaPath}" fill="var(--water-soft)" opacity="0.6"/>`;
+    s += `<path d="${linePath}" fill="none" stroke="var(--water)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    points.forEach((p, i) => {
+      const r = p.isAnchor ? 5 : 4;
+      s += `<circle cx="${x(i)}" cy="${y(p.v)}" r="${r}" fill="var(--surface-raised)" stroke="var(--water)" stroke-width="2"/>`;
+      if (i === 0 || i === points.length - 1) {
+        const anchor = i === 0 ? "start" : "end";
+        const dx = i === 0 ? 2 : -2;
+        s += `<text x="${x(i) + dx}" y="${y(p.v) - 10}" text-anchor="${anchor}" class="tick-label" font-weight="600">${p.v.toFixed(2)}</text>`;
+      }
+    });
+    // x labels: first, mid, last
+    [0, Math.floor((points.length - 1) / 2), points.length - 1].forEach(i => {
+      s += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" class="tick-label">${fmtDom(points[i].date)}</text>`;
+    });
+
+    s += tooltipLayer(points, x, y, W, H, padT, padB, v => v.toFixed(3) + " m");
+    svg.innerHTML = s;
+    attachHover(svg, points, x);
+  }
+
+  function drawRainChart(days) {
+    const svg = document.getElementById("rainChart");
+    const W = 600, H = 110, padL = 30, padR = 10, padT = 10, padB = 22;
+    const vals = days.map(d => d.precip_mm || 0);
+    const vMax = Math.max(4, ...vals) * 1.15;
+    const bw = (W - padL - padR) / days.length;
+
+    const y = v => padT + (1 - v / vMax) * (H - padT - padB);
+    let s = "";
+    [0, vMax * 0.5, vMax].forEach(v => {
+      const yy = y(v);
+      s += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" class="axis-line"/>`;
+      s += `<text x="${padL - 6}" y="${yy + 3}" text-anchor="end" class="tick-label">${Math.round(v)}</text>`;
+    });
+
+    days.forEach((d, i) => {
+      const v = d.precip_mm || 0;
+      const bx = padL + i * bw + bw * 0.22;
+      const bw2 = bw * 0.56;
+      const by = y(v);
+      s += `<rect x="${bx}" y="${by}" width="${bw2}" height="${(H - padB) - by}" rx="3" fill="var(--rain)" opacity="${v > 0 ? 0.85 : 0.25}"/>`;
+      s += `<text x="${padL + i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" class="tick-label">${fmtDom(d.date).split(" ")[0]}</text>`;
+    });
+    svg.innerHTML = s;
+  }
+
+  function tooltipLayer(points, x, y, W, H, padT, padB, fmt) {
+    return `<g id="hoverLayer" class="tooltip-group" style="display:none">
+      <line id="crosshair" class="crosshair" x1="0" y1="${padT}" x2="0" y2="${H - padB}"/>
+      <rect id="ttBg" class="tooltip-bg" x="0" y="0" width="70" height="30" rx="6"/>
+      <text id="ttDate" class="tooltip-text" x="0" y="0"></text>
+      <text id="ttVal" class="tooltip-text" x="0" y="0" font-weight="600"></text>
+    </g>`;
+  }
+
+  function attachHover(svg, points, x) {
+    const layer = svg.querySelector("#hoverLayer");
+    const crosshair = svg.querySelector("#crosshair");
+    const ttBg = svg.querySelector("#ttBg");
+    const ttDate = svg.querySelector("#ttDate");
+    const ttVal = svg.querySelector("#ttVal");
+
+    function nearestIndex(px) {
+      let best = 0, bestD = Infinity;
+      points.forEach((p, i) => { const d = Math.abs(x(i) - px); if (d < bestD) { bestD = d; best = i; } });
+      return best;
+    }
+    function show(clientX) {
+      const rect = svg.getBoundingClientRect();
+      const vb = svg.viewBox.baseVal;
+      const px = ((clientX - rect.left) / rect.width) * vb.width;
+      const i = nearestIndex(px);
+      const p = points[i];
+      const cx = x(i);
+      crosshair.setAttribute("x1", cx); crosshair.setAttribute("x2", cx);
+      const boxW = 74, boxX = Math.min(Math.max(cx - boxW / 2, 2), vb.width - boxW - 2);
+      ttBg.setAttribute("x", boxX); ttBg.setAttribute("y", 8); ttBg.setAttribute("width", boxW);
+      ttDate.setAttribute("x", boxX + 8); ttDate.setAttribute("y", 21);
+      ttVal.setAttribute("x", boxX + 8); ttVal.setAttribute("y", 33);
+      ttDate.textContent = fmtDom(p.date);
+      ttVal.textContent = p.v.toFixed(3) + " m";
+      layer.style.display = "block";
+    }
+    function hide() { layer.style.display = "none"; }
+    svg.addEventListener("pointermove", e => show(e.clientX));
+    svg.addEventListener("pointerdown", e => show(e.clientX));
+    svg.addEventListener("pointerleave", hide);
+  }
+
+  // ---- Data wiring ----
+  const SAMPLE = {
+    generated_at: new Date().toISOString(),
+    last_observed: { date: new Date().toISOString().slice(0,10), level_m: 1.60 },
+    days: Array.from({length:7}, (_,i) => ({
+      date: new Date(Date.now()+ (i+1)*864e5).toISOString().slice(0,10),
+      predicted_level_m: 1.60 + Math.sin(i/2)*0.05,
+      temp_max_c: 15, temp_min_c: 9, precip_mm: 2, precip_probability_max: 50, weather_code: 3,
+    })),
+    model_holdout_mae_cm: { "1": 1.3, "7": 4.8 },
+    _sample: true,
+  };
+
+  render(SAMPLE);
+
+  // Two possible hosts for this same file:
+  //  1. A Claude Artifact page (window.claude is present) - subscribe to the
+  //     live db document that the daily sync job writes to.
+  //  2. A plain static host, e.g. GitHub Pages served from the same repo the
+  //     daily GitHub Action commits forecast.json into - just fetch it.
+  // Try (1) first; fall back to (2) whenever claude.use isn't available or
+  // doesn't hand back a db (covers both "not a Claude artifact" and "no db
+  // capability declared").
+  function loadStatic() {
+    fetch("forecast.json", { cache: "no-store" })
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(render)
+      .catch(() => {
+        document.getElementById("syncLine").textContent = "Could not load forecast.json — showing sample data.";
+      });
+  }
+
+  if (typeof claude !== "undefined" && claude && typeof claude.use === "function") {
+    claude.use("db").then(db => {
+      if (!db) return loadStatic();
+      db.doc("forecast/latest").onSnapshot(
+        snap => { if (snap.exists) render(snap.data()); },
+        () => { document.getElementById("syncLine").textContent = "Sync error — showing last loaded data."; }
+      );
+    }).catch(loadStatic);
+  } else {
+    loadStatic();
+  }
+})();
+</script>
+</body>
+</html>
