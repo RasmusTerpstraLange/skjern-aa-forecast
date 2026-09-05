@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-09-05T13:03:09Z",
+  "station": "251519 Skjern \u00c5, Vardevej",
+  "station_lat": 55.9529,
+  "station_lon": 8.5469,
+  "last_observed": {
+    "date": "2026-09-04",
+    "level_m": 1.634
+  },
+  "days": [
+    {
+      "date": "2026-09-05",
+      "predicted_level_m": 1.672,
+      "temp_max_c": 16.9,
+      "temp_min_c": 13.5,
+      "precip_mm": 6.4,
+      "precip_probability_max": 100,
+      "weather_code": 63,
+      "weather_desc": "Moderate rain"
+    },
+    {
+      "date": "2026-09-06",
+      "predicted_level_m": 1.668,
+      "temp_max_c": 18.6,
+      "temp_min_c": 11.4,
+      "precip_mm": 0.0,
+      "precip_probability_max": 8,
+      "weather_code": 3,
+      "weather_desc": "Overcast"
+    },
+    {
+      "date": "2026-09-07",
+      "predicted_level_m": 1.623,
+      "temp_max_c": 21.2,
+      "temp_min_c": 14.2,
+      "precip_mm": 0.2,
+      "precip_probability_max": 76,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle"
+    },
+    {
+      "date": "2026-09-08",
+      "predicted_level_m": 1.585,
+      "temp_max_c": 17.9,
+      "temp_min_c": 14.1,
+      "precip_mm": 6.15,
+      "precip_probability_max": 78,
+      "weather_code": 80,
+      "weather_desc": "Slight rain showers"
+    },
+    {
+      "date": "2026-09-09",
+      "predicted_level_m": 1.61,
+      "temp_max_c": 16.4,
+      "temp_min_c": 12.7,
+      "precip_mm": 10.9,
+      "precip_probability_max": 84,
+      "weather_code": 95,
+      "weather_desc": "Thunderstorm"
+    },
+    {
+      "date": "2026-09-10",
+      "predicted_level_m": 1.66,
+      "temp_max_c": 15.0,
+      "temp_min_c": 12.6,
+      "precip_mm": 0.6,
+      "precip_probability_max": 53,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle"
+    },
+    {
+      "date": "2026-09-11",
+      "predicted_level_m": 1.64,
+      "temp_max_c": 17.2,
+      "temp_min_c": 11.5,
+      "precip_mm": 0.6,
+      "precip_probability_max": 45,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle"
+    }
+  ],
+  "model_holdout_mae_cm": {
+    "1": 1.3285964065404448,
+    "3": 2.960902064834078,
+    "5": 3.9793761073476777,
+    "7": 4.847539456567381
+  }
+}
