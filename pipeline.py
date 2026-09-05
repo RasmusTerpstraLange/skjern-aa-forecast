@@ -23,6 +23,7 @@ import json
 import csv
 import os
 import sys
+import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta, timezone
@@ -51,10 +52,47 @@ WEATHER_CODE_DESC = {
 }
 
 
-def http_get_json(url, timeout=30):
-    req = urllib.request.Request(url, headers={"User-Agent": "skjern-aa-forecast/1.0 (personal project)"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+def http_get_json(url, timeout=30, retries=2):
+    """GET a URL and parse JSON, with basic retry + diagnostics on failure.
+
+    Raises RuntimeError with the actual HTTP status/body snippet on failure,
+    instead of letting a bare JSONDecodeError obscure what really happened.
+    """
+    last_err = None
+    for attempt in range(1, retries + 2):
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "skjern-aa-forecast/1.0 (+https://github.com/RasmusTerpstraLange/skjern-aa-forecast)",
+                "Accept": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                status = resp.status
+                raw = resp.read()
+                if not raw:
+                    raise RuntimeError(f"HTTP {status} but empty response body for {url}")
+                try:
+                    return json.loads(raw.decode("utf-8"))
+                except json.JSONDecodeError as je:
+                    snippet = raw[:300].decode("utf-8", errors="replace")
+                    raise RuntimeError(
+                        f"HTTP {status} but non-JSON body for {url}: {je}. Body starts with: {snippet!r}"
+                    )
+        except urllib.error.HTTPError as e:
+            body = e.read()[:300].decode("utf-8", errors="replace")
+            last_err = RuntimeError(f"HTTP {e.code} {e.reason} for {url}. Body: {body!r}")
+        except urllib.error.URLError as e:
+            last_err = RuntimeError(f"Network error for {url}: {e.reason}")
+        except RuntimeError as e:
+            last_err = e
+
+        print(f"  attempt {attempt} failed: {last_err}", file=sys.stderr)
+        if attempt <= retries:
+            time.sleep(3 * attempt)
+
+    raise last_err
 
 
 def fetch_weather():
