@@ -1,0 +1,32 @@
+name: Daily water level forecast
+
+on:
+  schedule:
+    # 05:15 UTC daily (06:15 CET / 07:15 CEST Denmark time) - after Open-Meteo's
+    # early-morning forecast run and Vandportalen's overnight data are both fresh.
+    - cron: "15 5 * * *"
+  workflow_dispatch: {}  # allows manual "Run workflow" from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  update-forecast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run pipeline
+        run: python pipeline.py
+
+      - name: Commit updated forecast
+        run: |
+          git config user.name "skjern-aa-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add forecast.json data_log.csv
+          git diff --quiet --cached || git commit -m "Update forecast $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
