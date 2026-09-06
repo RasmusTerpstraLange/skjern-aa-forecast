@@ -101,7 +101,8 @@ def fetch_weather():
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={STATION_LAT}&longitude={STATION_LON}"
         "&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,"
-        "precipitation_probability_max,weather_code"
+        "precipitation_probability_max,weather_code,wind_speed_10m_max,wind_direction_10m_dominant"
+        "&wind_speed_unit=kmh"
         "&past_days=20&forecast_days=7&timezone=Europe%2FCopenhagen"
     )
     data = http_get_json(url)
@@ -115,6 +116,8 @@ def fetch_weather():
             "temp_min_c": daily.get("temperature_2m_min", [None] * len(dates))[i],
             "precip_prob_max": daily.get("precipitation_probability_max", [None] * len(dates))[i],
             "weather_code": daily.get("weather_code", daily.get("weathercode", [None] * len(dates)))[i],
+            "wind_speed_kmh": daily.get("wind_speed_10m_max", [None] * len(dates))[i],
+            "wind_direction_deg": daily.get("wind_direction_10m_dominant", [None] * len(dates))[i],
         }
     return out
 
@@ -192,6 +195,8 @@ def predict(model, weather, anchor_date_str, anchor_level, horizon=7):
             "precip_probability_max": w.get("precip_prob_max"),
             "weather_code": wc,
             "weather_desc": WEATHER_CODE_DESC.get(wc, None),
+            "wind_speed_kmh": w.get("wind_speed_kmh"),
+            "wind_direction_deg": w.get("wind_direction_deg"),
         })
     return results
 
