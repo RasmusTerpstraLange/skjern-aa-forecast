@@ -428,8 +428,11 @@
   function drawLevelChart(cur, days) {
     const svg = document.getElementById("levelChart");
     const W = 600, H = 160, padL = 34, padR = 10, padT = 14, padB = 22;
-    const points = [{ date: cur.date, v: cur.level_m, isAnchor: true }]
-      .concat(days.map(d => ({ date: d.date, v: d.predicted_level_m })));
+    // Only the 7 forecast days - same date range as the weather/rainfall
+    // panels. The last-observed reading is shown separately in the hero
+    // gauge above, not plotted here (it would extend this chart's date
+    // range a day earlier than the forecast).
+    const points = days.map(d => ({ date: d.date, v: d.predicted_level_m }));
     const vals = points.map(p => p.v);
     let vMin = Math.min(...vals), vMax = Math.max(...vals);
     const pad = Math.max(0.03, (vMax - vMin) * 0.25);
@@ -452,8 +455,7 @@
     s += `<path d="${linePath}" fill="none" stroke="var(--water)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
 
     points.forEach((p, i) => {
-      const r = p.isAnchor ? 5 : 4;
-      s += `<circle cx="${x(i)}" cy="${y(p.v)}" r="${r}" fill="var(--surface-raised)" stroke="var(--water)" stroke-width="2"/>`;
+      s += `<circle cx="${x(i)}" cy="${y(p.v)}" r="4" fill="var(--surface-raised)" stroke="var(--water)" stroke-width="2"/>`;
       if (i === 0 || i === points.length - 1) {
         const anchor = i === 0 ? "start" : "end";
         const dx = i === 0 ? 2 : -2;
