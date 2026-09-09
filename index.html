@@ -385,6 +385,33 @@
   // = watch/amber, above 0.80m = healthy/green.
   const LOW_BAND_MAX = 0.70, WATCH_BAND_MAX = 0.80;
 
+  // Mirrors of the rainfall->water-level model's coefficients (model_coefficients.json,
+  // trained server-side in pipeline.py) - kept here so the rainfall chart can shade
+  // bars by "is this day's rain enough to hold the level", not just recolor after
+  // the fact. If the model is ever retrained, update these three numbers to match.
+  const MODEL_A = 0.9861614464909396;      // level_lag1_coef (AR/recession term)
+  const MODEL_C = 0.017354353108219867;    // intercept
+  const MODEL_SUM_B = 0.0026823156333593;  // sum of precip_lag_coefs (0..14)
+
+  // Steady-state daily rain (mm) that exactly offsets recession at a given
+  // level, so predicted_level(t) == predicted_level(t-1) if that much rain
+  // fell every day for the ~15-day lag window. Solves 0 = (a-1)*L + c + R*sumB
+  // for R, where L is the RAW (DVR90) level the model was trained on.
+  function breakevenRainMm(depthM) {
+    const L = depthM + GAUGE_ZERO_M;
+    return ((1 - MODEL_A) * L - MODEL_C) / MODEL_SUM_B;
+  }
+  const STEADY_BAND_MM = 0.5; // "about the breakeven rate" tolerance either side
+  // Shared classification used everywhere a day's rain is compared to the
+  // breakeven rate (the rainfall chart bars and the day-card rain figures),
+  // so both stay in lockstep by construction. Returns a status name that
+  // doubles as the matching --good/--amber/--danger CSS custom property.
+  function rainStatus(v, breakeven) {
+    if (v > breakeven + STEADY_BAND_MM) return "good";
+    if (v < breakeven - STEADY_BAND_MM) return "danger";
+    return "amber";
+  }
+
   const WEATHER_ICONS = {
     clear: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" stroke="var(--amber)" stroke-width="1.6"/><g stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round"><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7M19.1 19.1l-1.7-1.7M6.6 6.6L4.9 4.9"/></g></svg>`,
     cloudy: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 18a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 11a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
@@ -460,7 +487,10 @@
     document.getElementById("rangeCaption").textContent =
       `Sits in the ${third} of the range observed since Jan 2025.`;
 
-    // day strip
+    // day strip - rain figure colored by the same breakeven logic as the
+    // "Forecast rainfall" chart bars below, using the one breakeven rate
+    // computed from today's observed level so the two stay in sync.
+    const breakeven = breakevenRainMm(cur.level_m);
     const strip = document.getElementById("dayStrip");
     strip.innerHTML = days.map((d, i) => `
       <div class="day-card">
@@ -468,13 +498,13 @@
         <div class="dom">${fmtDom(d.date)}</div>
         ${iconFor(d.weather_code)}
         <div class="temps">${Math.round(d.temp_max_c)}°<span class="lo">/${Math.round(d.temp_min_c)}°</span></div>
-        <div class="rain-amt">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
+        <div class="rain-amt" style="color:var(--${rainStatus(d.precip_mm || 0, breakeven)})">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
         ${d.wind_speed_kmh != null ? `<div class="wind">${windIcon(d.wind_direction_deg || 0)}${degToCompass(d.wind_direction_deg || 0)} ${Math.round(d.wind_speed_kmh)} km/h</div>` : ""}
       </div>
     `).join("");
 
     drawLevelChart(cur, days);
-    drawRainChart(cur, days);
+    drawRainChart(cur, days, breakeven);
 
     if (data.model_holdout_mae_cm) {
       document.getElementById("mae1").textContent = "± " + data.model_holdout_mae_cm["1"].toFixed(1) + " cm";
@@ -572,7 +602,7 @@
     attachHover(svg, points, x);
   }
 
-  function drawRainChart(cur, days) {
+  function drawRainChart(cur, days, breakeven) {
     const svg = document.getElementById("rainChart");
     const W = 600, H = 110, padL = 30, padR = 10, padT = 10, padB = 22;
     const vals = days.map(d => d.precip_mm || 0);
@@ -587,15 +617,15 @@
       s += `<text x="${padL - 6}" y="${yy + 3}" text-anchor="end" class="tick-label">${Math.round(v)}</text>`;
     });
 
-    // Bar color is NOT about the rain amount itself - it's whether that
-    // day's rain (combined with the model's recession) is enough to hold or
-    // grow the water level: same day-over-day delta and ±1cm "steady" band
-    // as the trend pill above, so the two stay consistent with each other.
+    // Bar color compares that day's rain directly to the breakeven rate -
+    // the steady-state daily rain that would hold TODAY's level flat (see
+    // breakevenRainMm above) - rather than to the model's resulting
+    // day-over-day delta. Same rainStatus() classification (and the same
+    // breakeven figure, passed in from render()) as the day-card rain
+    // figures above, so the two stay in lockstep.
     days.forEach((d, i) => {
       const v = d.precip_mm || 0;
-      const prevLevel = i === 0 ? cur.level_m : days[i - 1].predicted_level_m;
-      const delta = d.predicted_level_m - prevLevel;
-      const color = delta > 0.01 ? "var(--good-soft)" : delta < -0.01 ? "var(--danger-soft)" : "var(--amber-soft)";
+      const color = `var(--${rainStatus(v, breakeven)}-soft)`;
       const bx = padL + i * bw + bw * 0.22;
       const bw2 = bw * 0.56;
       const by = y(v);
