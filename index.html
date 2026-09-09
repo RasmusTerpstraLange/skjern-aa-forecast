@@ -510,7 +510,7 @@
         ${iconFor(d.weather_code)}
         <div class="temps">${Math.round(d.temp_max_c)}°<span class="lo">/${Math.round(d.temp_min_c)}°</span></div>
         <div class="rain-amt" style="color:var(--${rainStatus(d.precip_mm || 0, breakeven)})">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
-        ${d.wind_speed_kmh != null ? `<div class="wind">${windIcon(d.wind_direction_deg || 0)}${degToCompass(d.wind_direction_deg || 0)} ${Math.round(d.wind_speed_kmh)} km/h</div>` : ""}
+        ${d.wind_speed_kmh != null ? `<div class="wind">${windIcon(d.wind_direction_deg || 0)}${(d.wind_speed_kmh / 3.6).toFixed(1)} m/s</div>` : ""}
       </div>
     `).join("");
 
