@@ -262,6 +262,8 @@
     padding-top: 14px;
   }
   footer a { color: var(--ink-muted); }
+  .accuracy-link { display: block; text-align: center; font-size: 13px; font-weight: 600; color: var(--water); text-decoration: none; margin-top: -6px; }
+  .accuracy-link:hover { text-decoration: underline; }
   footer .sync-line { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--water); flex: none; }
   .dot.stale { background: var(--amber); }
@@ -328,6 +330,8 @@
     <div class="stat-tile"><div class="label">1-day accuracy</div><div class="value" id="mae1">± – cm</div></div>
     <div class="stat-tile"><div class="label">7-day accuracy</div><div class="value" id="mae7">± – cm</div></div>
   </div>
+
+  <a class="accuracy-link" href="accuracy.html">See full accuracy breakdown →</a>
 
   <footer>
     <div class="sync-line"><span class="dot" id="syncDot"></span><span id="syncLine">Connecting…</span></div>
