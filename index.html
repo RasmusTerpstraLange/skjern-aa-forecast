@@ -233,6 +233,7 @@
   .chart-legend { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-muted); }
   .chart-legend span { display: flex; align-items: center; gap: 4px; }
   .chart-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; border: 1px solid var(--border); }
+  .chart-legend svg.line-swatch { width: 16px; height: 8px; flex: none; }
   svg.chart { width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
   .tick-label { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-faint); }
   .axis-line { stroke: var(--border); stroke-width: 1; }
@@ -306,6 +307,7 @@
   <div class="chart-card">
     <div class="chart-head">
       <div class="chart-title">Predicted level <span class="unit">m</span></div>
+      <div class="chart-legend" id="levelLegend"></div>
     </div>
     <svg class="chart" id="levelChart" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
   </div>
@@ -458,6 +460,11 @@
     // tooltips) just works in depth without touching each display site.
     const cur = { ...data.last_observed, level_m: toDepth(data.last_observed.level_m) };
     const days = (data.days || []).map(d => ({ ...d, predicted_level_m: toDepth(d.predicted_level_m) }));
+    // Recently-observed days (excluding today's anchor, which is already
+    // the first point of this list from the pipeline) for the "Predicted
+    // level" chart - absent on older cached data until the next pipeline
+    // run backfills it, so every consumer below treats it as optional.
+    const recentObserved = (data.recent_observed || []).map(d => ({ ...d, level_m: toDepth(d.level_m) }));
 
     document.getElementById("curLevel").textContent = cur.level_m.toFixed(2);
     document.getElementById("curDate").textContent = "as of " + fmtDom(cur.date);
@@ -503,7 +510,7 @@
       </div>
     `).join("");
 
-    drawLevelChart(cur, days);
+    drawLevelChart(cur, days, recentObserved);
     drawRainChart(cur, days, breakeven);
 
     if (data.model_holdout_mae_cm) {
@@ -525,14 +532,18 @@
     document.getElementById("syncDot").className = "dot" + (ageHrs > 30 ? " stale" : "");
   }
 
-  function drawLevelChart(cur, days) {
+  function drawLevelChart(cur, days, recentObserved) {
     const svg = document.getElementById("levelChart");
     const W = 600, H = 160, padL = 34, padR = 10, padT = 14, padB = 22;
-    // Only the 7 forecast days - same date range as the weather/rainfall
-    // panels. The last-observed reading is shown separately in the hero
-    // gauge above, not plotted here (it would extend this chart's date
-    // range a day earlier than the forecast).
-    const points = days.map(d => ({ date: d.date, v: d.predicted_level_m }));
+    // Recently-observed days (actual readings) lead into the 7 forecast
+    // days (model predictions) as one continuous series - observed drawn
+    // solid, forecast drawn dashed, so it's clear where fact ends and
+    // prediction begins. Falls back to forecast-only if recentObserved is
+    // empty (e.g. cached data from before this field existed).
+    const obsPoints = (recentObserved || []).map(d => ({ date: d.date, v: d.level_m, observed: true }));
+    const fcPoints = days.map(d => ({ date: d.date, v: d.predicted_level_m, observed: false }));
+    const points = obsPoints.concat(fcPoints);
+    const splitIdx = obsPoints.length - 1; // index of the last observed point, or -1 if none
     // Fixed y-axis (depth, m) rather than auto-scaled to the week's values -
     // keeps the chart comparable week to week instead of rescaling itself
     // every time the forecast changes.
@@ -551,6 +562,12 @@
 
     const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(p.v)}`).join(" ");
     const areaPath = linePath + ` L ${x(points.length - 1)} ${H - padB} L ${x(0)} ${H - padB} Z`;
+    // Solid stroke over the observed span, dashed over the forecast span,
+    // sharing the anchor point at splitIdx so the line stays unbroken.
+    const solidPath = splitIdx >= 0
+      ? points.slice(0, splitIdx + 1).map((p, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(p.v)}`).join(" ")
+      : "";
+    const dashedPath = points.slice(Math.max(splitIdx, 0)).map((p, i) => `${i === 0 ? "M" : "L"} ${x(i + Math.max(splitIdx, 0))} ${y(p.v)}`).join(" ");
 
     // Color the area under the curve by the same low/watch/healthy depth
     // thresholds as the hero range bar, not a flat water tint - a vertical
@@ -579,7 +596,10 @@
       </linearGradient>
     </defs>`;
     s += `<path d="${areaPath}" fill="url(#areaThreshold)" opacity="0.75"/>`;
-    s += `<path d="${linePath}" fill="none" stroke="url(#lineThreshold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if (solidPath) {
+      s += `<path d="${solidPath}" fill="none" stroke="url(#lineThreshold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    s += `<path d="${dashedPath}" fill="none" stroke="url(#lineThreshold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"${solidPath ? ' stroke-dasharray="5 4"' : ""}/>`;
 
     points.forEach((p, i) => {
       s += `<circle cx="${x(i)}" cy="${y(p.v)}" r="4" fill="var(--surface-raised)" stroke="url(#lineThreshold)" stroke-width="2"/>`;
@@ -600,6 +620,14 @@
     s += tooltipLayer(points, x, y, W, H, padT, padB, v => v.toFixed(3) + " m");
     svg.innerHTML = s;
     attachHover(svg, points, x);
+
+    // Legend only earns its keep once there's an observed/forecast split to
+    // explain - a forecast-only chart (no recentObserved yet) shows none.
+    const legend = document.getElementById("levelLegend");
+    legend.innerHTML = splitIdx >= 0
+      ? `<span><svg class="line-swatch" viewBox="0 0 16 8"><line x1="1" y1="4" x2="15" y2="4" stroke="var(--ink-muted)" stroke-width="2"/></svg>Observed</span>
+         <span><svg class="line-swatch" viewBox="0 0 16 8"><line x1="1" y1="4" x2="15" y2="4" stroke="var(--ink-muted)" stroke-width="2" stroke-dasharray="3 2.5"/></svg>Forecast</span>`
+      : "";
   }
 
   function drawRainChart(cur, days, breakeven) {

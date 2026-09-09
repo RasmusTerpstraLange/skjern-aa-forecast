@@ -122,13 +122,16 @@ def fetch_weather():
     return out
 
 
-def fetch_latest_water_level():
-    """Returns (date_str YYYY-MM-DD, level_m) for the most recent COMPLETE calendar day."""
+def fetch_recent_water_levels(n=3):
+    """Returns [(date_str YYYY-MM-DD, level_m), ...] for the last n COMPLETE
+    calendar days, oldest first. The most recent entry is the forecast
+    anchor; the rest are shown on the chart as recently-observed history
+    alongside the forecast."""
     now = datetime.now(timezone.utc)
     enddate = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     url = (
         "https://vandportalen.dk/api/hyd/getplotdata"
-        f"?tsid={VANDPORTALEN_TSID}&enddate={enddate}&days=6&pw={VANDPORTALEN_PW}"
+        f"?tsid={VANDPORTALEN_TSID}&enddate={enddate}&days={max(6, n + 3)}&pw={VANDPORTALEN_PW}"
     )
     data = http_get_json(url)
     recs = data.get("PlotRecs", [])
@@ -155,8 +158,8 @@ def fetch_latest_water_level():
     # Drop today (likely incomplete) unless it's the only day available.
     today_str = now.strftime("%Y-%m-%d")
     usable = [d for d in complete_days if d != today_str] or complete_days
-    last_day = usable[-1]
-    return last_day, round(daily_means[last_day], 3)
+    last_n = usable[-n:]
+    return [(d, round(daily_means[d], 3)) for d in last_n]
 
 
 def predict(model, weather, anchor_date_str, anchor_level, horizon=7):
@@ -228,10 +231,12 @@ def main():
         sys.exit(1)
 
     try:
-        anchor_date, anchor_level = fetch_latest_water_level()
+        recent_levels = fetch_recent_water_levels(n=3)
     except Exception as e:
         print(f"ERROR fetching water level: {e}", file=sys.stderr)
         sys.exit(1)
+
+    anchor_date, anchor_level = recent_levels[-1]
 
     forecast_days = predict(model, weather, anchor_date, anchor_level, horizon=7)
 
@@ -241,6 +246,7 @@ def main():
         "station_lat": STATION_LAT,
         "station_lon": STATION_LON,
         "last_observed": {"date": anchor_date, "level_m": anchor_level},
+        "recent_observed": [{"date": d, "level_m": lv} for d, lv in recent_levels],
         "days": forecast_days,
         "model_holdout_mae_cm": model.get("recursive_backtest_mae_cm"),
     }
