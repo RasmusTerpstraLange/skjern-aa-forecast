@@ -218,6 +218,21 @@
     font-variant-numeric: tabular-nums;
   }
   .day-card .wind svg { width: 10px; height: 10px; flex: none; }
+  .day-card.favorable {
+    border-color: var(--good);
+    background: var(--good-soft);
+  }
+  .day-card .fish-star {
+    width: 13px; height: 13px; color: var(--good); margin-top: -2px;
+  }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; flex-wrap: wrap;
+  }
+  .section-note {
+    font-size: 11.5px; color: var(--ink-faint); display: flex; align-items: center; gap: 4px;
+  }
+  .section-note svg { width: 11px; height: 11px; color: var(--good); flex: none; }
 
   /* ---------- Charts ---------- */
   .chart-card {
@@ -302,7 +317,10 @@
   </div>
 
   <section>
-    <h2>Next 7 days</h2>
+    <div class="section-head">
+      <h2>Next 7 days</h2>
+      <div class="section-note"><svg class="fish-star" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.2l2.55 5.86 6.35.6-4.8 4.28 1.42 6.26L10 14.9l-5.52 3.3 1.42-6.26-4.8-4.28 6.35-.6z"/></svg>Favours a catch</div>
+    </div>
     <div class="day-strip" id="dayStrip"></div>
   </section>
 
@@ -418,6 +436,40 @@
     return "amber";
   }
 
+  // "Favours a catch" star: a composite fishing-conditions score, fit from
+  // this season's actual Fangstjournalen catch records for Skjern Å
+  // (Apr 16 - Sep 10 2026, 148 days) correlated against same-day weather.
+  // Cooler, windier, more overcast days measurably produced more salmon
+  // catches even after controlling for the season's overall upward trend
+  // (run timing) - this mirrors that with the three signals already in
+  // this forecast (temp_max_c, wind_speed_kmh, weather_code as a cloud/
+  // precip proxy). Composite score correlates r=0.29 (p<0.001) with actual
+  // daily catch counts over the season - a real but partial signal, not a
+  // guarantee. Water level was NOT a significant factor for Skjern Å total
+  // catches (only for fly-caught fish specifically), so it's deliberately
+  // left out of this score despite being the app's main number.
+  // Season mean/std (baseline to score each forecast day against) and
+  // |partial-correlation|-derived weights, sign-matched to direction of
+  // effect. THRESHOLD is the season's own 67th percentile of this score -
+  // a day is starred if it's in the top third of the season's conditions.
+  const FISHSCORE = {
+    tmax_c:       { mean: 17.876, std: 4.400,  weight: -0.30 },
+    wind_kmh:     { mean: 22.154, std: 6.594,  weight: +0.19 },
+    weather_code: { mean: 37.419, std: 24.987, weight: +0.24 },
+  };
+  const FISHSCORE_THRESHOLD = 0.29;
+  function fishingScore(d) {
+    if (d.temp_max_c == null || d.wind_speed_kmh == null || d.weather_code == null) return null;
+    const vals = { tmax_c: d.temp_max_c, wind_kmh: d.wind_speed_kmh, weather_code: d.weather_code };
+    let score = 0;
+    for (const k in FISHSCORE) {
+      const { mean, std, weight } = FISHSCORE[k];
+      score += ((vals[k] - mean) / std) * weight;
+    }
+    return score;
+  }
+  const STAR_SVG = `<svg class="fish-star" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.2l2.55 5.86 6.35.6-4.8 4.28 1.42 6.26L10 14.9l-5.52 3.3 1.42-6.26-4.8-4.28 6.35-.6z"/></svg>`;
+
   const WEATHER_ICONS = {
     clear: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" stroke="var(--amber)" stroke-width="1.6"/><g stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round"><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7M19.1 19.1l-1.7-1.7M6.6 6.6L4.9 4.9"/></g></svg>`,
     cloudy: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><path d="M7 18a4 4 0 1 1 .6-7.96A5 5 0 0 1 17 11a3.5 3.5 0 0 1-.5 7H7Z" stroke="var(--ink-muted)" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
@@ -503,16 +555,21 @@
     // computed from today's observed level so the two stay in sync.
     const breakeven = breakevenRainMm(cur.level_m);
     const strip = document.getElementById("dayStrip");
-    strip.innerHTML = days.map((d, i) => `
-      <div class="day-card">
+    strip.innerHTML = days.map((d, i) => {
+      const score = fishingScore(d);
+      const starred = score != null && score >= FISHSCORE_THRESHOLD;
+      return `
+      <div class="day-card${starred ? " favorable" : ""}"${starred ? ` title="Favours a catch: cooler, windier and cloudier than a typical day this season"` : ""}>
         <div class="dow">${fmtDay(d.date, i)}</div>
         <div class="dom">${fmtDom(d.date)}</div>
+        ${starred ? STAR_SVG : ""}
         ${iconFor(d.weather_code)}
         <div class="temps">${Math.round(d.temp_max_c)}°<span class="lo">/${Math.round(d.temp_min_c)}°</span></div>
         <div class="rain-amt" style="color:var(--${rainStatus(d.precip_mm || 0, breakeven)})">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
         ${d.wind_speed_kmh != null ? `<div class="wind">${windIcon(d.wind_direction_deg || 0)}${(d.wind_speed_kmh / 3.6).toFixed(1)} m/s</div>` : ""}
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     drawLevelChart(cur, days, recentObserved);
     drawRainChart(cur, days, breakeven);
