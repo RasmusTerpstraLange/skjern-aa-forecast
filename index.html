@@ -222,9 +222,12 @@
     border-color: var(--good);
     background: var(--good-soft);
   }
-  .day-card .fish-star {
-    width: 13px; height: 13px; color: var(--good); margin-top: -2px;
+  .day-card .fish-stars {
+    display: flex; gap: 1px; margin-top: -2px;
   }
+  .day-card .fish-stars svg { width: 9px; height: 9px; flex: none; }
+  .day-card .fish-stars .filled { color: var(--good); }
+  .day-card .fish-stars .empty { color: var(--ink-faint); opacity: 0.45; }
   .section-head {
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 8px; flex-wrap: wrap;
@@ -232,7 +235,9 @@
   .section-note {
     font-size: 11.5px; color: var(--ink-faint); display: flex; align-items: center; gap: 4px;
   }
-  .section-note svg { width: 11px; height: 11px; color: var(--good); flex: none; }
+  .section-note .fish-stars svg { width: 11px; height: 11px; flex: none; }
+  .section-note .fish-stars .filled { color: var(--good); }
+  .section-note .fish-stars .empty { color: var(--ink-faint); opacity: 0.45; }
 
   /* ---------- Charts ---------- */
   .chart-card {
@@ -319,7 +324,7 @@
   <section>
     <div class="section-head">
       <h2>Next 7 days</h2>
-      <div class="section-note"><svg class="fish-star" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.2l2.55 5.86 6.35.6-4.8 4.28 1.42 6.26L10 14.9l-5.52 3.3 1.42-6.26-4.8-4.28 6.35-.6z"/></svg>Favours a catch</div>
+      <div class="section-note">More stars = better fishing conditions this season</div>
     </div>
     <div class="day-strip" id="dayStrip"></div>
   </section>
@@ -436,39 +441,98 @@
     return "amber";
   }
 
-  // "Favours a catch" star: a composite fishing-conditions score, fit from
+  // Fishing-conditions stars: a composite score, fit from
   // this season's actual Fangstjournalen catch records for Skjern Å
-  // (Apr 16 - Sep 10 2026, 148 days) correlated against same-day weather.
-  // Cooler, windier, more overcast days measurably produced more salmon
-  // catches even after controlling for the season's overall upward trend
-  // (run timing) - this mirrors that with the three signals already in
-  // this forecast (temp_max_c, wind_speed_kmh, weather_code as a cloud/
-  // precip proxy). Composite score correlates r=0.29 (p<0.001) with actual
-  // daily catch counts over the season - a real but partial signal, not a
-  // guarantee. Water level was NOT a significant factor for Skjern Å total
-  // catches (only for fly-caught fish specifically), so it's deliberately
-  // left out of this score despite being the app's main number.
-  // Season mean/std (baseline to score each forecast day against) and
-  // |partial-correlation|-derived weights, sign-matched to direction of
-  // effect. THRESHOLD is the season's own 67th percentile of this score -
-  // a day is starred if it's in the top third of the season's conditions.
+  // (Apr 16 - Sep 10 2026, 148 days) correlated against weather and water
+  // level. Cooler, windier, more overcast days measurably produced more
+  // salmon catches even after controlling for the season's overall upward
+  // trend (run timing) - this mirrors that with the three weather signals
+  // already in this forecast (temp_max_c, wind_speed_kmh, weather_code as
+  // a cloud/precip proxy).
+  //
+  // Water level itself only matters WITH A LAG: same-day level change had
+  // no relationship to catches (r=0.01), but the level change from 1-2
+  // days earlier does - r=+0.22 (1 day) and +0.30 (2 days), both p<0.01 -
+  // fish evidently respond to a rise a day or two after it happens, not
+  // instantly. RECENT_RISE below is the average of those two lagged daily
+  // changes (cm/day), so a day scores higher for fishing when the river
+  // was climbing 1-2 days before it, not for being high or rising itself.
+  //
+  // Composite (temp+wind+weather_code+recent_rise) correlates r=0.38
+  // (p<0.0001) with actual daily catch counts over the season - the
+  // strongest version of this score so far, still a partial signal, not
+  // a guarantee. Season mean/std (baseline to score each forecast day
+  // against) and |partial-correlation|-derived weights, sign-matched to
+  // direction of effect.
+  //
+  // Rendered as 1-5 stars rather than a single yes/no star: STAR_CUTOFFS
+  // are this season's own score quintiles (20th/40th/60th/80th percentile
+  // of the 148-day Fangstjournalen sample), so 1 star = bottom-fifth
+  // conditions this season, 5 stars = top-fifth - always calibrated to
+  // what a "poor" vs "good" day actually looked like this season, not an
+  // arbitrary absolute cutoff.
   const FISHSCORE = {
-    tmax_c:       { mean: 17.876, std: 4.400,  weight: -0.30 },
-    wind_kmh:     { mean: 22.154, std: 6.594,  weight: +0.19 },
-    weather_code: { mean: 37.419, std: 24.987, weight: +0.24 },
+    tmax_c:       { mean: 17.916, std: 4.416,  weight: -0.30 },
+    wind_kmh:     { mean: 22.229, std: 6.594,  weight: +0.19 },
+    weather_code: { mean: 37.205, std: 25.090, weight: +0.24 },
+    recent_rise:  { mean: -0.318, std: 2.028,  weight: +0.26 },
   };
-  const FISHSCORE_THRESHOLD = 0.29;
-  function fishingScore(d) {
+  const STAR_CUTOFFS = [-0.558, -0.108, 0.190, 0.568]; // p20, p40, p60, p80 of season score
+  function fishingStars(score) {
+    if (score == null) return null;
+    let stars = 1;
+    for (const c of STAR_CUTOFFS) { if (score >= c) stars++; }
+    return stars; // 1..5
+  }
+  // recentRiseCm: average of the level_mean_cm day-over-day change from 1
+  // and 2 days before this forecast day (see computeRecentRise below) -
+  // null when there isn't enough level history to compute it yet.
+  function fishingScore(d, recentRiseCm) {
     if (d.temp_max_c == null || d.wind_speed_kmh == null || d.weather_code == null) return null;
     const vals = { tmax_c: d.temp_max_c, wind_kmh: d.wind_speed_kmh, weather_code: d.weather_code };
-    let score = 0;
-    for (const k in FISHSCORE) {
+    let score = 0, weightUsed = 0;
+    for (const k of ["tmax_c", "wind_kmh", "weather_code"]) {
       const { mean, std, weight } = FISHSCORE[k];
       score += ((vals[k] - mean) / std) * weight;
+      weightUsed += Math.abs(weight);
     }
-    return score;
+    if (recentRiseCm != null) {
+      const { mean, std, weight } = FISHSCORE.recent_rise;
+      score += ((recentRiseCm - mean) / std) * weight;
+      weightUsed += Math.abs(weight);
+    }
+    // Rescale by the weight actually applied, so a day missing recent_rise
+    // (early in the forecast, before enough level history exists) is
+    // compared on the same footing as one that has it, rather than always
+    // scoring lower just for having one fewer term.
+    const totalWeight = Object.values(FISHSCORE).reduce((s, f) => s + Math.abs(f.weight), 0);
+    return score * (totalWeight / weightUsed);
   }
-  const STAR_SVG = `<svg class="fish-star" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.2l2.55 5.86 6.35.6-4.8 4.28 1.42 6.26L10 14.9l-5.52 3.3 1.42-6.26-4.8-4.28 6.35-.6z"/></svg>`;
+  // Builds the day-over-day water-level change (cm) at every point in a
+  // chronological level series, then returns the average of the changes 1
+  // and 2 days before index `pos` - the lagged "was the river climbing
+  // recently" signal fishingScore() rewards. Returns null when fewer than
+  // 2 changes are available that far back (not enough observed history).
+  function computeRecentRise(levelSeriesCm, pos) {
+    const changeAt = i => (i >= 1 && i < levelSeriesCm.length) ? levelSeriesCm[i] - levelSeriesCm[i - 1] : null;
+    const c1 = changeAt(pos - 1), c2 = changeAt(pos - 2);
+    if (c1 == null && c2 == null) return null;
+    if (c1 == null) return c2;
+    if (c2 == null) return c1;
+    return (c1 + c2) / 2;
+  }
+  const STAR_PATH = `M10 1.2l2.55 5.86 6.35.6-4.8 4.28 1.42 6.26L10 14.9l-5.52 3.3 1.42-6.26-4.8-4.28 6.35-.6z`;
+  const STAR_FILLED = `<svg viewBox="0 0 20 20" fill="currentColor"><path d="${STAR_PATH}"/></svg>`;
+  const STAR_EMPTY = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="${STAR_PATH}"/></svg>`;
+  // Renders a fixed row of 5 stars, `rating` of them filled - used both for
+  // a day's own score and (statically, all 5 filled) as the legend icon.
+  function starRow(rating) {
+    let s = "";
+    for (let i = 1; i <= 5; i++) {
+      s += `<span class="${i <= rating ? "filled" : "empty"}">${i <= rating ? STAR_FILLED : STAR_EMPTY}</span>`;
+    }
+    return `<div class="fish-stars">${s}</div>`;
+  }
 
   const WEATHER_ICONS = {
     clear: `<svg class="wicon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" stroke="var(--amber)" stroke-width="1.6"/><g stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round"><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7M19.1 19.1l-1.7-1.7M6.6 6.6L4.9 4.9"/></g></svg>`,
@@ -554,15 +618,29 @@
     // "Forecast rainfall" chart bars below, using the one breakeven rate
     // computed from today's observed level so the two stay in sync.
     const breakeven = breakevenRainMm(cur.level_m);
+    // Chronological level series (cm) spanning the recently-observed days
+    // (recentObserved's last entry is today) through the 7 forecast days,
+    // so computeRecentRise can reach back 1-2 days before even the first
+    // forecast day. Absent/short recentObserved (older cached data) just
+    // means recentRise comes back null for the earliest days - handled by
+    // fishingScore's reweighting above, not a crash.
+    const levelSeriesCm = recentObserved.map(d => d.level_m * 100)
+      .concat(days.map(d => d.predicted_level_m * 100));
     const strip = document.getElementById("dayStrip");
     strip.innerHTML = days.map((d, i) => {
-      const score = fishingScore(d);
-      const starred = score != null && score >= FISHSCORE_THRESHOLD;
+      const pos = recentObserved.length + i;
+      const recentRiseCm = computeRecentRise(levelSeriesCm, pos);
+      const score = fishingScore(d, recentRiseCm);
+      const stars = fishingStars(score);
+      const good = stars != null && stars >= 4;
+      const band = stars == null ? "" : stars <= 2 ? "Below-average" : stars === 3 ? "Average" : "Above-average";
+      const rise = recentRiseCm != null && recentRiseCm > 0.5 ? " — river's been rising the last couple of days" : "";
+      const title = stars == null ? "" : `${band} fishing conditions for this season (${stars}/5)${rise}`;
       return `
-      <div class="day-card${starred ? " favorable" : ""}"${starred ? ` title="Favours a catch: cooler, windier and cloudier than a typical day this season"` : ""}>
+      <div class="day-card${good ? " favorable" : ""}"${title ? ` title="${title}"` : ""}>
         <div class="dow">${fmtDay(d.date, i)}</div>
         <div class="dom">${fmtDom(d.date)}</div>
-        ${starred ? STAR_SVG : ""}
+        ${stars != null ? starRow(stars) : ""}
         ${iconFor(d.weather_code)}
         <div class="temps">${Math.round(d.temp_max_c)}°<span class="lo">/${Math.round(d.temp_min_c)}°</span></div>
         <div class="rain-amt" style="color:var(--${rainStatus(d.precip_mm || 0, breakeven)})">${d.precip_mm != null ? d.precip_mm.toFixed(1) : "–"} mm</div>
