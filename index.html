@@ -598,7 +598,6 @@
       else if (delta < -0.01) { cls = "falling"; label = "Falling"; arrow = "↓"; }
       pill.innerHTML = `<span class="trend-pill ${cls}">${arrow} ${label} · ${(delta >= 0 ? "+" : "")}${Math.round(delta * 100)} cm /24h</span>`;
     }
-
     // range bar - red (low/concerning) -> amber (watch) -> green (healthy),
     // banded at fixed depth thresholds rather than at the midpoint.
     const toPct = v => Math.max(0, Math.min(100, ((v - HIST_MIN) / (HIST_MAX - HIST_MIN)) * 100));
