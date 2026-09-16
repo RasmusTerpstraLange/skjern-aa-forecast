@@ -1,110 +1,110 @@
 {
-  "generated_at": "2026-09-15T05:27:07Z",
+  "generated_at": "2026-09-16T05:25:49Z",
   "station": "251519 Skjern \u00c5, Vardevej",
   "station_lat": 55.9529,
   "station_lon": 8.5469,
   "last_observed": {
-    "date": "2026-09-14",
-    "level_m": 1.616
+    "date": "2026-09-15",
+    "level_m": 1.603
   },
   "recent_observed": [
     {
-      "date": "2026-09-12",
-      "level_m": 1.621
-    },
-    {
       "date": "2026-09-13",
-      "level_m": 1.625
+      "level_m": 1.626
     },
     {
       "date": "2026-09-14",
       "level_m": 1.616
+    },
+    {
+      "date": "2026-09-15",
+      "level_m": 1.603
     }
   ],
   "days": [
     {
-      "date": "2026-09-15",
-      "predicted_level_m": 1.588,
-      "temp_max_c": 19.4,
-      "temp_min_c": 14.0,
-      "precip_mm": 1.3,
-      "precip_probability_max": 100,
-      "weather_code": 53,
-      "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 23.0,
-      "wind_direction_deg": 199
-    },
-    {
       "date": "2026-09-16",
-      "predicted_level_m": 1.57,
-      "temp_max_c": 15.9,
-      "temp_min_c": 12.9,
-      "precip_mm": 0.1,
-      "precip_probability_max": 53,
+      "predicted_level_m": 1.582,
+      "temp_max_c": 15.7,
+      "temp_min_c": 13.0,
+      "precip_mm": 0.6,
+      "precip_probability_max": 67,
       "weather_code": 51,
       "weather_desc": "Light drizzle",
-      "wind_speed_kmh": 26.3,
-      "wind_direction_deg": 276
+      "wind_speed_kmh": 25.2,
+      "wind_direction_deg": 280
     },
     {
       "date": "2026-09-17",
-      "predicted_level_m": 1.557,
-      "temp_max_c": 16.5,
-      "temp_min_c": 11.2,
-      "precip_mm": 3.55,
-      "precip_probability_max": 88,
-      "weather_code": 55,
-      "weather_desc": "Dense drizzle",
-      "wind_speed_kmh": 25.9,
-      "wind_direction_deg": 229
+      "predicted_level_m": 1.568,
+      "temp_max_c": 15.9,
+      "temp_min_c": 11.3,
+      "precip_mm": 1.5,
+      "precip_probability_max": 98,
+      "weather_code": 53,
+      "weather_desc": "Moderate drizzle",
+      "wind_speed_kmh": 22.3,
+      "wind_direction_deg": 226
     },
     {
       "date": "2026-09-18",
-      "predicted_level_m": 1.571,
-      "temp_max_c": 16.3,
-      "temp_min_c": 13.1,
-      "precip_mm": 5.3,
-      "precip_probability_max": 86,
-      "weather_code": 53,
-      "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 30.6,
-      "wind_direction_deg": 250
+      "predicted_level_m": 1.568,
+      "temp_max_c": 15.9,
+      "temp_min_c": 11.6,
+      "precip_mm": 4.23,
+      "precip_probability_max": 96,
+      "weather_code": 61,
+      "weather_desc": "Slight rain",
+      "wind_speed_kmh": 29.2,
+      "wind_direction_deg": 242
     },
     {
       "date": "2026-09-19",
-      "predicted_level_m": 1.609,
-      "temp_max_c": 17.2,
-      "temp_min_c": 13.6,
-      "precip_mm": 5.1,
-      "precip_probability_max": 77,
-      "weather_code": 53,
-      "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 28.1,
-      "wind_direction_deg": 235
+      "predicted_level_m": 1.601,
+      "temp_max_c": 18.5,
+      "temp_min_c": 13.9,
+      "precip_mm": 7.0,
+      "precip_probability_max": 84,
+      "weather_code": 80,
+      "weather_desc": "Slight rain showers",
+      "wind_speed_kmh": 32.7,
+      "wind_direction_deg": 234
     },
     {
       "date": "2026-09-20",
-      "predicted_level_m": 1.643,
-      "temp_max_c": 15.9,
-      "temp_min_c": 12.4,
-      "precip_mm": 6.9,
-      "precip_probability_max": 78,
+      "predicted_level_m": 1.652,
+      "temp_max_c": 16.1,
+      "temp_min_c": 12.1,
+      "precip_mm": 7.8,
+      "precip_probability_max": 87,
       "weather_code": 53,
       "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 39.1,
-      "wind_direction_deg": 272
+      "wind_speed_kmh": 32.9,
+      "wind_direction_deg": 271
     },
     {
       "date": "2026-09-21",
-      "predicted_level_m": 1.674,
-      "temp_max_c": 15.7,
-      "temp_min_c": 12.5,
-      "precip_mm": 3.3,
-      "precip_probability_max": 51,
-      "weather_code": 53,
-      "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 38.3,
+      "predicted_level_m": 1.689,
+      "temp_max_c": 15.5,
+      "temp_min_c": 12.7,
+      "precip_mm": 0.6,
+      "precip_probability_max": 72,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle",
+      "wind_speed_kmh": 35.8,
       "wind_direction_deg": 310
+    },
+    {
+      "date": "2026-09-22",
+      "predicted_level_m": 1.668,
+      "temp_max_c": 17.8,
+      "temp_min_c": 11.5,
+      "precip_mm": 0.3,
+      "precip_probability_max": 11,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle",
+      "wind_speed_kmh": 18.0,
+      "wind_direction_deg": 268
     }
   ],
   "model_holdout_mae_cm": {
