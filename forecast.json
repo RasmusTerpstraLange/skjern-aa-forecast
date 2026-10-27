@@ -1,110 +1,110 @@
 {
-  "generated_at": "2026-10-26T11:06:00Z",
+  "generated_at": "2026-10-27T10:32:15Z",
   "station": "251519 Skjern \u00c5, Vardevej",
   "station_lat": 55.9529,
   "station_lon": 8.5469,
   "last_observed": {
-    "date": "2026-10-25",
-    "level_m": 1.774
+    "date": "2026-10-26",
+    "level_m": 1.939
   },
   "recent_observed": [
-    {
-      "date": "2026-10-23",
-      "level_m": 1.676
-    },
     {
       "date": "2026-10-24",
       "level_m": 1.684
     },
     {
       "date": "2026-10-25",
-      "level_m": 1.774
+      "level_m": 1.773
+    },
+    {
+      "date": "2026-10-26",
+      "level_m": 1.939
     }
   ],
   "days": [
     {
-      "date": "2026-10-26",
-      "predicted_level_m": 1.96,
-      "temp_max_c": 12.1,
-      "temp_min_c": 9.4,
-      "precip_mm": 1.4,
-      "precip_probability_max": 100,
-      "weather_code": 51,
-      "weather_desc": "Light drizzle",
-      "wind_speed_kmh": 49.0,
-      "wind_direction_deg": 254
-    },
-    {
       "date": "2026-10-27",
-      "predicted_level_m": 1.969,
-      "temp_max_c": 13.4,
-      "temp_min_c": 10.1,
-      "precip_mm": 6.1,
-      "precip_probability_max": 97,
-      "weather_code": 61,
-      "weather_desc": "Slight rain",
-      "wind_speed_kmh": 33.8,
-      "wind_direction_deg": 192
+      "predicted_level_m": 1.949,
+      "temp_max_c": 13.6,
+      "temp_min_c": 9.9,
+      "precip_mm": 6.7,
+      "precip_probability_max": 100,
+      "weather_code": 55,
+      "weather_desc": "Dense drizzle",
+      "wind_speed_kmh": 35.6,
+      "wind_direction_deg": 193
     },
     {
       "date": "2026-10-28",
-      "predicted_level_m": 1.946,
-      "temp_max_c": 13.1,
-      "temp_min_c": 9.8,
-      "precip_mm": 2.33,
-      "precip_probability_max": 78,
+      "predicted_level_m": 1.929,
+      "temp_max_c": 12.9,
+      "temp_min_c": 9.0,
+      "precip_mm": 1.8,
+      "precip_probability_max": 90,
       "weather_code": 53,
       "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 22.3,
-      "wind_direction_deg": 226
+      "wind_speed_kmh": 22.0,
+      "wind_direction_deg": 220
     },
     {
       "date": "2026-10-29",
-      "predicted_level_m": 1.897,
+      "predicted_level_m": 1.878,
       "temp_max_c": 13.6,
-      "temp_min_c": 9.8,
+      "temp_min_c": 9.5,
       "precip_mm": 0.0,
-      "precip_probability_max": 38,
+      "precip_probability_max": 52,
       "weather_code": 3,
       "weather_desc": "Overcast",
-      "wind_speed_kmh": 17.3,
-      "wind_direction_deg": 287
+      "wind_speed_kmh": 11.8,
+      "wind_direction_deg": 266
     },
     {
       "date": "2026-10-30",
-      "predicted_level_m": 1.848,
+      "predicted_level_m": 1.827,
       "temp_max_c": 13.1,
-      "temp_min_c": 9.8,
+      "temp_min_c": 9.0,
       "precip_mm": 0.0,
       "precip_probability_max": 0,
       "weather_code": 3,
       "weather_desc": "Overcast",
-      "wind_speed_kmh": 16.5,
-      "wind_direction_deg": 305
+      "wind_speed_kmh": 14.7,
+      "wind_direction_deg": 288
     },
     {
       "date": "2026-10-31",
-      "predicted_level_m": 1.796,
-      "temp_max_c": 11.9,
-      "temp_min_c": 6.4,
+      "predicted_level_m": 1.776,
+      "temp_max_c": 13.2,
+      "temp_min_c": 10.9,
       "precip_mm": 0.0,
-      "precip_probability_max": 6,
+      "precip_probability_max": 2,
       "weather_code": 3,
       "weather_desc": "Overcast",
-      "wind_speed_kmh": 10.8,
-      "wind_direction_deg": 116
+      "wind_speed_kmh": 12.6,
+      "wind_direction_deg": 289
     },
     {
       "date": "2026-11-01",
-      "predicted_level_m": 1.781,
-      "temp_max_c": 10.6,
-      "temp_min_c": 6.4,
-      "precip_mm": 7.2,
-      "precip_probability_max": 10,
-      "weather_code": 53,
-      "weather_desc": "Moderate drizzle",
-      "wind_speed_kmh": 15.9,
-      "wind_direction_deg": 167
+      "predicted_level_m": 1.749,
+      "temp_max_c": 12.7,
+      "temp_min_c": 8.6,
+      "precip_mm": 0.6,
+      "precip_probability_max": 9,
+      "weather_code": 51,
+      "weather_desc": "Light drizzle",
+      "wind_speed_kmh": 18.8,
+      "wind_direction_deg": 281
+    },
+    {
+      "date": "2026-11-02",
+      "predicted_level_m": 1.735,
+      "temp_max_c": 11.7,
+      "temp_min_c": 6.6,
+      "precip_mm": 0.0,
+      "precip_probability_max": 7,
+      "weather_code": 2,
+      "weather_desc": "Partly cloudy",
+      "wind_speed_kmh": 25.0,
+      "wind_direction_deg": 332
     }
   ],
   "model_holdout_mae_cm": {
